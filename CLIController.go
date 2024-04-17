@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,24 +11,40 @@ import (
 	"time"
 )
 
+const (
+	edit_mode int8 = iota + 1
+	dictant_mode
+)
+
+const (
+	unpleasant int8 = iota + 1
+	critical
+)
+
+var infoWords map[int8]string
+
 type CLI struct {
-	Mode      string
-	clear     map[string]func()
-	Words     []Word
-	infoWords map[string]string
-	S         *bufio.Scanner
+	Mode  int8
+	clear map[string]func()
+	Words []Word
+	S     *bufio.Scanner
 }
 
-func (c *CLI) initDictantMode() {
-	fmt.Println("")
+func Shell() *CLI {
+	c := new(CLI)
+	c.init()
+	c.writeInfo()
+	c.readFromDisk()
+	return c
 }
 
-func (c *CLI) initEditMode() {
-
+func (c *CLI) initMode(mode int8) {
+	c.Mode = mode
+	c.writeInfo()
 }
 
 func (c CLI) writeInfo() {
-	fmt.Println(c.infoWords[c.Mode])
+	fmt.Println(infoWords[c.Mode])
 }
 
 func (c CLI) closeApp() {
@@ -53,13 +70,24 @@ func (c *CLI) init() {
 		cmd.Stdout = os.Stdout
 		cmd.Run()
 	}
-	c.Mode = "none"
-	c.infoWords = map[string]string{
-		"none": "EM - to enter edit mode \n DM to enter dictant mode \n EXIT to exit form app",
-		"EM":   "LIST - to list all words and translates \n EDIT {word} - to start editing translate or key word \n ADD - to add new word and translate \n DELETE {word} to delete word or translate \n END to exit EDIT mode",
-		"DM":   "",
+	c.Mode = 0
+	infoWords = map[int8]string{
+		0:            "EM - to enter edit mode \n DM to enter dictant mode \n EXIT to exit form app",
+		edit_mode:    "LIST - to list all words and translates \n EDIT {word} - to start editing translate or key word \n ADD - to add new word and translate \n DELETE {word} to delete word or translate \n END to exit EDIT mode",
+		dictant_mode: "",
 	}
 
+}
+
+func errorHandler(err error, criticality int8) {
+	if err != nil {
+		switch criticality {
+		case unpleasant:
+			fmt.Println(err)
+		case critical:
+			roughtExit(err)
+		}
+	}
 }
 
 func (c CLI) CallClear() {
@@ -67,15 +95,16 @@ func (c CLI) CallClear() {
 	if ok {                            //if we defined a clear func for that platform:
 		value() //we execute it
 	} else { //unsupported platform
-		panic("Your platform is unsupported! I can't clear terminal screen :(")
+		roughtExit(errors.New("your platform is unsupported! I can't clear terminal screen :("))
 	}
 }
 
 func (c *CLI) readFromDisk() {
 	file := findFile()
-	err := json.NewDecoder(file).Decode(c.Words)
-	if err != nil {
-		roughtExit(err)
+	s, err := file.Stat()
+	errorHandler(err, 2)
+	if s.Size() > 0 {
+		errorHandler(json.NewDecoder(file).Decode(&c.Words), 2)
 	}
 }
 
@@ -89,7 +118,7 @@ func (c *CLI) writeToDisk() {
 }
 
 func roughtExit(err error) {
-	fmt.Println(err)
+	fmt.Println("rought_exit", err)
 	time.Sleep(5 * time.Second)
 	os.Exit(10)
 }
