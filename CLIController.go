@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+// 0 - chose mode
+// 1 - edit mode
+// 2 - dictant mode
 const (
 	edit_mode int8 = iota + 1
 	dictant_mode
@@ -20,14 +23,17 @@ const (
 	unpleasant int8 = iota + 1
 	critical
 )
+const nameOfMainFile = "words.json"
+const nameOfReplicaFile = "old_words.json"
 
 var infoWords map[int8]string
 
 type CLI struct {
-	Mode  int8
-	clear map[string]func()
-	Words []Word
-	S     *bufio.Scanner
+	Mode      int8
+	clear     map[string]func()
+	Words     []Word `json:"words"`
+	S         *bufio.Scanner
+	haveToSay string
 }
 
 func Shell() *CLI {
@@ -39,12 +45,18 @@ func Shell() *CLI {
 }
 
 func (c *CLI) initMode(mode int8) {
+	if c.Mode == edit_mode {
+		c.writeToDisk()
+	}
 	c.Mode = mode
-	c.writeInfo()
+	c.CallClear()
 }
 
-func (c CLI) writeInfo() {
+func (c *CLI) writeInfo() {
+	fmt.Println("-------INFO-------")
 	fmt.Println(infoWords[c.Mode])
+	fmt.Println(c.haveToSay)
+	c.haveToSay = ""
 }
 
 func (c CLI) closeApp() {
@@ -72,8 +84,8 @@ func (c *CLI) init() {
 	}
 	c.Mode = 0
 	infoWords = map[int8]string{
-		0:            "EM - to enter edit mode \n DM to enter dictant mode \n EXIT to exit form app",
-		edit_mode:    "LIST - to list all words and translates \n EDIT {word} - to start editing translate or key word \n ADD - to add new word and translate \n DELETE {word} to delete word or translate \n END to exit EDIT mode",
+		0:            " (E)M - to enter edit mode \n (D)M to enter dictant mode \n (EX)IT to exit form app",
+		edit_mode:    " (L)IST - to list all words and translates \n (E)DIT - to start editing words \n (A)DD - to add new word and translate \n (D)ELETE to delete word or translate \n EXIT for exit from EDIT mode",
 		dictant_mode: "",
 	}
 
@@ -100,7 +112,8 @@ func (c CLI) CallClear() {
 }
 
 func (c *CLI) readFromDisk() {
-	file := findFile()
+	file := getFile(nameOfMainFile)
+	defer file.Close()
 	s, err := file.Stat()
 	errorHandler(err, 2)
 	if s.Size() > 0 {
@@ -109,12 +122,21 @@ func (c *CLI) readFromDisk() {
 }
 
 func (c *CLI) writeToDisk() {
-	file := findFile()
+
+	file := getFile(nameOfMainFile)
+	defer file.Close()
+
+	text, err := os.ReadFile(nameOfMainFile)
+	errorHandler(err, 1)
+	replica := getFile(nameOfReplicaFile)
+	defer replica.Close()
+
+	replica.Write(text)
+
 	w, err := json.Marshal(c.Words)
-	if err != nil {
-		fmt.Println(err)
-	}
+	errorHandler(err, 1)
 	file.Write(w)
+
 }
 
 func roughtExit(err error) {

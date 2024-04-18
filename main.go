@@ -7,6 +7,7 @@ import (
 func main() {
 	c := Shell()
 	for c.S.Scan() {
+
 		command := strings.ToUpper(c.S.Text())
 		switch c.Mode {
 		case edit_mode:
@@ -16,31 +17,33 @@ func main() {
 		default:
 			SwitchingMode(command, c)
 		}
-
+		c.writeInfo()
 	}
 }
 
 func SwitchingMode(command string, c *CLI) {
 
-	switch command {
-	case "EXIT":
+	switch {
+	case command == "EXIT" || command == "EX":
 		c.closeApp()
-	case "EM":
+	case command == "EM" || command == "E":
 		c.initMode(edit_mode)
-	case "DM":
+	case command == "DM" || command == "D":
 		c.initMode(dictant_mode)
 	}
 }
 
 func Edit_mode(command string, c *CLI) {
-
 	switch {
-	case command == "LIST":
+	case command == "LIST" || command == "L":
 		c.ListW()
-	case command == "ADD":
+	case command == "ADD" || command == "A":
 		c.AddW()
-	case command == "END":
+	case command == "EDIT" || command == "E":
+		c.EditW()
+	case command == "DELETE" || command == "D":
+		c.DeleteW()
+	case command == "EXIT" || command == "E":
 		c.initMode(0)
 	}
-
 }
