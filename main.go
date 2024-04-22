@@ -1,19 +1,33 @@
 package main
 
 import (
+	"os"
+	"os/signal"
 	"strings"
 )
 
 func main() {
 	c := Shell()
+
+	exitNotify := make(chan os.Signal, 1)
+	signal.Notify(exitNotify, os.Interrupt)
+
+	go func(exitNotify chan os.Signal) {
+		<-exitNotify
+		if len(c.Words) > 0 {
+			c.writeToDisk()
+		}
+		os.Exit(1)
+	}(exitNotify)
+
 	for c.S.Scan() {
 
 		command := strings.ToUpper(c.S.Text())
 		switch c.Mode {
 		case edit_mode:
-			Edit_mode(command, c)
-		case dictant_mode:
-
+			EditMode(command, c)
+		case dictation_mode:
+			DictantMde(command, c)
 		default:
 			SwitchingMode(command, c)
 		}
@@ -29,11 +43,11 @@ func SwitchingMode(command string, c *CLI) {
 	case command == "EM" || command == "E":
 		c.initMode(edit_mode)
 	case command == "DM" || command == "D":
-		c.initMode(dictant_mode)
+		c.initMode(dictation_mode)
 	}
 }
 
-func Edit_mode(command string, c *CLI) {
+func EditMode(command string, c *CLI) {
 	switch {
 	case command == "LIST" || command == "L":
 		c.ListW()
@@ -43,7 +57,25 @@ func Edit_mode(command string, c *CLI) {
 		c.EditW()
 	case command == "DELETE" || command == "D":
 		c.DeleteW()
+	case command == "EXIT" || command == "EX":
+		c.writeToDisk()
+		c.initMode(0)
+	case command == "SAVE" || command == "S":
+		c.writeToDisk()
+	case command == "COPY" || command == "C":
+		c.CopyFormReplica()
+	}
+}
+
+func DictantMde(command string, c *CLI) {
+	switch {
+	case command == "START" || command == "S":
+		c.StartDictant()
+	case command == "CHANGE" || command == "C":
+		c.ChangeRange()
 	case command == "EXIT" || command == "E":
 		c.initMode(0)
+	default:
+		c.StartDictant()
 	}
 }
