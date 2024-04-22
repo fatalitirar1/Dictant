@@ -111,37 +111,35 @@ func (c *CLI) EditW() {
 
 func (c *CLI) StartDictant() {
 	c.CallClear()
+	lenWords := len(c.Words)
 	if c.ElementsInR == 0 {
 		c.ChangeRange()
 	}
 
-	if c.ElementsInR >= len(c.Words) {
+	if c.ElementsInR >= lenWords {
 		for k := range c.Words {
 			fmt.Println(k)
 		}
 	} else {
 		r := rand.New(rand.NewSource(int64(time.Now().Second())))
 
-		Words := []string{}
+		shufled := []string{}
 		for k := range c.Words {
-			Words = append(Words, k)
+			shufled = append(shufled, k)
 		}
-		cof := len(Words) / c.ElementsInR
-		ids := []int{}
-		for i := rand.Intn(cof) + 1; c.ElementsInR > len(ids); i += r.Intn(cof-1) + 1 {
-			ids = append(ids, i)
-		}
-
-		for ii := 0; ii < c.ElementsInR; ii++ {
-			id1 := r.Intn(c.ElementsInR - 1)
-			id2 := r.Intn(c.ElementsInR - 1)
-			forTime := ids[id2]
-			ids[id2] = ids[id1]
-			ids[id1] = forTime
+		for l := 0; l <= lenWords/2; l++ {
+			id_1, id_2 := r.Intn(lenWords), r.Intn(lenWords)
+			shufled[id_1], shufled[id_2] = shufled[id_2], shufled[id_1]
 		}
 
-		for _, k := range ids {
-			fmt.Println(Words[k])
+		cof := len(shufled) / c.ElementsInR
+		ids := make(map[int]struct{})
+		for i := 0; c.ElementsInR > len(ids); i += cof {
+			ids[i] = struct{}{}
+		}
+
+		for k := range ids {
+			fmt.Println(shufled[k])
 		}
 	}
 }
