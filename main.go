@@ -1,12 +1,28 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"os/signal"
 	"strings"
 )
 
+const (
+	CLIExec string = "CLI"
+)
+
 func main() {
+	wToExec := flag.String("WToExec", CLIExec, "way to execute programm")
+	flag.Parse()
+
+	switch *wToExec {
+	case CLIExec:
+		CLIStart()
+	}
+
+}
+
+func CLIStart() {
 	c := Shell()
 
 	exitNotify := make(chan os.Signal, 1)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math/rand"
 	"os"
@@ -9,8 +10,10 @@ import (
 	"time"
 )
 
-const nameOfMainFile string = "words.json"
-const nameOfReplicaFile string = "old_words.json"
+var (
+	nameOfMainFile    = *flag.String("NameOfMainFile", "Words.json", "file which use to save last data ")
+	nameOfReplicaFile = *flag.String("NameOfReplica", "r_Words.json", "Replica file")
+)
 
 func getFile(name string) *os.File {
 	var file *os.File
@@ -70,6 +73,7 @@ func (c *CLI) DeleteW() {
 	defer c.CallClear()
 	wordToDell := c.makeFillShift("enter word to delete, or type 'q' for exit:")
 	if c.isQuitExit(wordToDell) {
+		c.setHaveToSay("nothing changed")
 		return
 	}
 	delete(c.Words, wordToDell)
@@ -79,7 +83,7 @@ func (c *CLI) DeleteW() {
 
 func (c *CLI) EditW() {
 	defer c.CallClear()
-	wordToEddit := c.makeFillShift("type word which you want to found, or type 'a' for exit:")
+	wordToEddit := c.makeFillShift("type word which you want to found, or type 'q' for exit:")
 	if c.isQuitExit(wordToEddit) {
 		return
 	}
@@ -109,7 +113,7 @@ func (c *CLI) EditW() {
 	c.setHaveToSay(fmt.Sprint("changed: ", wordToEddit, " -> ", w))
 }
 
-func (c *CLI) StartDictant() {
+func (c CLI) StartDictant() {
 	c.CallClear()
 	lenWords := len(c.Words)
 	if c.ElementsInR == 0 {
@@ -158,13 +162,15 @@ func (c *CLI) ChangeRange() {
 	} else {
 		num, err := strconv.Atoi(n)
 		errorHandler(err, 1)
-		if num > len(c.Words) {
-			c.ElementsInR = len(c.Words)
-		} else if num == 0 {
-			c.setHaveToSay("can't be 0")
-			c.ChangeRange()
-		} else {
-			c.ElementsInR = num
+		if err != nil {
+			if num > len(c.Words) {
+				c.ElementsInR = len(c.Words)
+			} else if num == 0 {
+				c.setHaveToSay("can't be 0")
+				c.ChangeRange()
+			} else {
+				c.ElementsInR = num
+			}
 		}
 	}
 

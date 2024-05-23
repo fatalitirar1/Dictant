@@ -28,7 +28,9 @@ const (
 	critical
 )
 
-var infoWords map[int8]string
+var (
+	infoWords map[int8]string
+)
 
 type CLI struct {
 	Mode        int8
